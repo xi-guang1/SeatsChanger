@@ -1,0 +1,39 @@
+{
+    "layout_config": {
+        "column1": {
+            "rows": 3,
+            "cols": 3,
+            "row_height": 60,
+            "col_width": 80
+        },
+        "column2": {
+            "rows": 6,
+            "cols": 1,
+            "row_height": 60,
+            "col_width": 80
+        },
+        "column3": {
+            "rows": 8,
+            "cols": 3,
+            "row_height": 60,
+            "col_width": 80
+        }
+    },
+    "column_names": {
+        "column1": "南",
+        "column2": "中",
+        "column3": "北"
+    },
+    "window": {
+        "title": "教室座位安排系统",
+        "max_width": 1200,
+        "max_height": 800,
+        "min_width": 900,
+        "min_height": 700,
+        "size_percentage": 0.85
+    },
+    "theme": "LIGHT",
+    "styles": {
+        "main_window": "background-color: #f5f7fa;"
+    }
+}

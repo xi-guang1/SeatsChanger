@@ -1,0 +1,226 @@
+import os
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QSpinBox, QWidget
+from qfluentwidgets import (
+    BodyLabel,
+    CardWidget,
+    SubtitleLabel,
+    TitleLabel,
+    PushButton,
+    PrimaryPushButton
+)
+
+class SettingsDialog(QDialog):
+    """设置对话框
+    
+    用于配置应用程序的各种设置，包括座位布局
+    """
+    def __init__(self, parent=None, layout_config=None, column_names=None):
+        """初始化设置对话框
+        
+        Args:
+            parent: 父窗口
+            layout_config: 当前布局配置
+            column_names: 列名称配置
+        """
+        super().__init__(parent)
+        
+        self.setWindowTitle("设置")
+        self.resize(650, 450)  # 稍微增加对话框大小
+        self.setMinimumSize(600, 400)  # 设置最小尺寸
+        
+        # 存储设置面板引用
+        self.settings_panel = SettingsPanel(
+            self, 
+            layout_config=layout_config, 
+            column_names=column_names
+        )
+        
+        # 设置对话框布局
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.settings_panel)
+
+class SettingsPanel(QWidget):
+    """设置面板部件
+    
+    用于配置座位布局的行数和列数
+    """
+    def __init__(self, parent=None, layout_config=None, column_names=None):
+        super().__init__(parent)
+        
+        # 设置布局配置和列名
+        self.layout_config = layout_config or {
+            "column1": {"rows": 8, "cols": 3, "row_height": 60, "col_width": 80},
+            "column2": {"rows": 8, "cols": 3, "row_height": 60, "col_width": 80},
+            "column3": {"rows": 8, "cols": 3, "row_height": 60, "col_width": 80}
+        }
+        
+        self.column_names = column_names or {
+            "column1": "南",
+            "column2": "中",
+            "column3": "北"
+        }
+        
+        # 存储输入控件引用
+        self.column_rows_inputs = {}
+        self.column_cols_inputs = {}
+        
+        # 初始化UI
+        self._init_ui()
+    
+    def _init_ui(self):
+        """初始化设置面板UI - 使用qfluentwidgets组件优化界面美观性"""
+        
+        # 使用qfluentwidgets的主题色
+        self.setStyleSheet("background-color: white;")
+        
+        # 创建主布局
+        main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        
+        # 设置最小尺寸
+        self.setMinimumSize(550, 350)
+        
+        # 添加标题 - 使用qfluentwidgets的TitleLabel
+        title = TitleLabel("座位布局设置", self)
+        title.show()
+        main_layout.addWidget(title)
+        
+        # 添加说明文字 - 使用qfluentwidgets的BodyLabel
+        description = BodyLabel("请设置每列的行数和列数：", self)
+        description.show()
+        main_layout.addWidget(description)
+        
+        # 创建设置项容器 - 使用qfluentwidgets的CardWidget
+        settings_container = CardWidget(self)
+        settings_container.show()
+        settings_layout = QVBoxLayout(settings_container)
+        settings_layout.setSpacing(10)
+        settings_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.addWidget(settings_container)
+        
+        # 为每个列添加行数和列数设置
+        for col_key, col_name in self.column_names.items():
+            # 创建一行设置
+            row_widget = CardWidget(settings_container)
+            row_widget.show()
+            row_layout = QHBoxLayout(row_widget)
+            row_layout.setSpacing(15)
+            row_layout.setContentsMargins(10, 10, 10, 10)
+            
+            # 列名
+            col_label = SubtitleLabel(f"{col_name}列:", row_widget)
+            col_label.setFixedWidth(80)
+            col_label.show()
+            row_layout.addWidget(col_label)
+            
+            # 行数设置
+            rows_group = QWidget(row_widget)
+            rows_group.show()
+            rows_layout = QVBoxLayout(rows_group)
+            rows_layout.setContentsMargins(0, 0, 0, 0)
+            
+            rows_label = BodyLabel("行数", rows_group)
+            rows_label.show()
+            rows_layout.addWidget(rows_label)
+            
+            rows_spinbox = QSpinBox(rows_group)
+            rows_spinbox.setRange(1, 20)
+            rows_spinbox.setValue(self.layout_config[col_key]["rows"])
+            rows_spinbox.setFixedWidth(80)
+            rows_spinbox.setStyleSheet("QSpinBox { background-color: white; border: 1px solid #d0d0d0; border-radius: 4px; padding: 4px; }")
+            rows_spinbox.show()
+            rows_layout.addWidget(rows_spinbox)
+            
+            self.column_rows_inputs[col_key] = rows_spinbox
+            row_layout.addWidget(rows_group)
+            
+            # 列数设置
+            cols_group = QWidget(row_widget)
+            cols_group.show()
+            cols_layout = QVBoxLayout(cols_group)
+            cols_layout.setContentsMargins(0, 0, 0, 0)
+            
+            cols_label = BodyLabel("列数", cols_group)
+            cols_label.show()
+            cols_layout.addWidget(cols_label)
+            
+            cols_spinbox = QSpinBox(cols_group)
+            cols_spinbox.setRange(1, 10)
+            cols_spinbox.setValue(self.layout_config[col_key]["cols"])
+            cols_spinbox.setFixedWidth(80)
+            cols_spinbox.setStyleSheet("QSpinBox { background-color: white; border: 1px solid #d0d0d0; border-radius: 4px; padding: 4px; }")
+            cols_spinbox.show()
+            cols_layout.addWidget(cols_spinbox)
+            
+            self.column_cols_inputs[col_key] = cols_spinbox
+            row_layout.addWidget(cols_group)
+            
+            row_layout.addStretch(1)
+            settings_layout.addWidget(row_widget)
+        
+        # 添加按钮
+        buttons_widget = QWidget(self)
+        buttons_widget.show()
+        buttons_layout = QHBoxLayout(buttons_widget)
+        buttons_layout.setContentsMargins(0, 0, 0, 0)
+        buttons_layout.addStretch(1)
+        
+        # 使用qfluentwidgets的PushButton
+        cancel_button = PushButton("取消", buttons_widget)
+        cancel_button.setMinimumWidth(80)
+        cancel_button.clicked.connect(self.close_parent_dialog)
+        cancel_button.show()
+        buttons_layout.addWidget(cancel_button)
+        
+        # 使用qfluentwidgets的PrimaryPushButton
+        apply_button = PrimaryPushButton("应用设置", buttons_widget)
+        apply_button.setMinimumWidth(100)
+        apply_button.clicked.connect(self.apply_settings)
+        apply_button.show()
+        buttons_layout.addWidget(apply_button)
+        
+        main_layout.addWidget(buttons_widget)
+        
+        # 强制显示所有控件
+        self.show()
+        for child in self.findChildren(QWidget):
+            child.show()
+    
+    def close_parent_dialog(self):
+        """安全关闭父对话框"""
+        if self.parent():
+            try:
+                self.parent().reject()
+            except Exception as e:
+                pass  # 静默处理错误
+    
+    def apply_settings(self):
+        """应用设置并关闭对话框"""
+        # 创建新的布局配置
+        custom_layout_config = {}
+        
+        # 从输入框获取每列的行数和列数
+        for col_key in self.column_names.keys():
+            rows = self.column_rows_inputs[col_key].value()
+            cols = self.column_cols_inputs[col_key].value()
+            
+            # 保留原有的行高和列宽设置
+            custom_layout_config[col_key] = {
+                "rows": rows,
+                "cols": cols,
+                "row_height": self.layout_config[col_key]["row_height"],
+                "col_width": self.layout_config[col_key]["col_width"]
+            }
+        
+        # 保存设置，准备在对话框关闭后应用
+        self.custom_layout_config = custom_layout_config
+        
+        # 设置对话框结果并关闭
+        if self.parent():
+            try:
+                # 设置对话框结果为接受
+                self.parent().accept()
+            except Exception as e:
+                # 如果设置结果失败，尝试直接关闭
+                self.close_parent_dialog()
