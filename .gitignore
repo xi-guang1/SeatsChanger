@@ -48,6 +48,16 @@ htmlcov/
 # 构建文件
 build/
 dist/
+
+# Nuitka 打包相关
+*.build/
+*.dist/
+*.onefile-build/
+*.onefile-dist/
+*.exe
+*.dll
+*.pyd
+*.so
 *.egg-info/
 
 # 模板文件夹
