@@ -390,6 +390,8 @@ class SeatingChartWindow(QMainWindow):
             border-radius: 6px;
             margin-bottom: 5px;
         """)
+        # 固定标题高度，初始化后不再修改
+        col_title.setFixedHeight(40)
         column_layout.addWidget(col_title)
         
         # 网格布局容器，添加背景
