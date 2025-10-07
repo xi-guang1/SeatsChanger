@@ -1,8 +1,10 @@
 import os
 from datetime import datetime
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QTextDocument
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
 from PyQt5.QtPrintSupport import QPrinter
+from qfluentwidgets import InfoBar, InfoBarPosition
 
 class ExportManager:
     """导出管理器
@@ -33,8 +35,16 @@ class ExportManager:
             pixmap.save(file_path)
             
             # 显示状态消息
-            if hasattr(self.parent_window, 'statusBar'):
-                self.parent_window.statusBar().showMessage(f"已导出图片到: {file_path}")
+            if self.parent_window:
+                InfoBar.success(
+                    title="成功",
+                    content=f"已导出图片到: {file_path}",
+                    orient=Qt.Horizontal,
+                    isClosable=True,
+                    position=InfoBarPosition.TOP_RIGHT,
+                    duration=2000,
+                    parent=self.parent_window
+                )
                 
         except Exception as e:
             error_message = f"导出图片时出错: {str(e)}"
@@ -232,8 +242,16 @@ class ExportManager:
                 # 验证文件是否已创建
                 if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
                     print(f"PDF文件已成功创建: {file_path}, 大小: {os.path.getsize(file_path)}字节")
-                    if hasattr(self.parent_window, 'statusBar'):
-                        self.parent_window.statusBar().showMessage(f"已导出PDF到: {file_path}")
+                    if self.parent_window:
+                        InfoBar.success(
+                            title="成功",
+                            content=f"已导出PDF到: {file_path}",
+                            orient=Qt.Horizontal,
+                            isClosable=True,
+                            position=InfoBarPosition.TOP_RIGHT,
+                            duration=2000,
+                            parent=self.parent_window
+                        )
                 else:
                     raise IOError(f"PDF文件创建失败或为空: {file_path}")
             except Exception as print_error:

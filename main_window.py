@@ -15,6 +15,8 @@ from qfluentwidgets import (
     BodyLabel,
     CardWidget,
     FluentIcon as FIF,
+    InfoBar,
+    InfoBarPosition,
     LineEdit,
     PrimaryPushButton,
     PushButton,
@@ -302,7 +304,15 @@ class SeatingChartWindow(QMainWindow):
         """刷新整个UI界面"""
         self.refresh_student_list()
         self.setup_seating_chart(self.config["layout_config"])
-        self.statusBar().showMessage("就绪")
+        InfoBar.success(
+            title="成功",
+            content="就绪",
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP_RIGHT,
+            duration=2000,
+            parent=self
+        )
 
     def refresh_student_list(self):
         """刷新学生列表显示"""
@@ -324,7 +334,15 @@ class SeatingChartWindow(QMainWindow):
         if student_name in self.students:
             self.students.remove(student_name)
             self.refresh_student_list()
-            self.statusBar().showMessage(f"已安排学生 {student_name} 到座位")
+            InfoBar.success(
+            title="成功",
+            content=f"已安排学生 {student_name} 到座位",
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP_RIGHT,
+            duration=2000,
+            parent=self
+        )
 
     def setup_seating_chart(self, layout_config=None):
         """设置座位图表布局"""
@@ -366,9 +384,25 @@ class SeatingChartWindow(QMainWindow):
                 self.config["layout_config"] = dialog.settings_panel.custom_layout_config
                 self.config_manager.update_config(self.config)
                 # 更新状态消息
-                self.statusBar().showMessage("座位布局已更新")
+                InfoBar.success(
+            title="成功",
+            content="座位布局已更新",
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP_RIGHT,
+            duration=2000,
+            parent=self
+        )
             except Exception as e:
-                self.statusBar().showMessage(f"应用设置时出错: {str(e)}")
+                InfoBar.error(
+            title="错误",
+            content=f"应用设置时出错: {str(e)}",
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP_RIGHT,
+            duration=3000,
+            parent=self
+        )
 
     def _create_seating_column(self, col_key, config):
         """创建单个列的座位布局"""
@@ -432,13 +466,29 @@ class SeatingChartWindow(QMainWindow):
             return
             
         if student_name in self.students:
-            self.statusBar().showMessage("学生已存在")
+            InfoBar.warning(
+            title="警告",
+            content="学生已存在",
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP_RIGHT,
+            duration=2000,
+            parent=self
+        )
             return
             
         self.students.append(student_name)
         self.refresh_student_list()
         self.add_student_edit.clear()
-        self.statusBar().showMessage(f"已添加学生: {student_name}")
+        InfoBar.success(
+            title="成功",
+            content=f"已添加学生: {student_name}",
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP_RIGHT,
+            duration=2000,
+            parent=self
+        )
 
     def import_from_csv(self):
         """从CSV文件导入学生名单"""
@@ -447,7 +497,15 @@ class SeatingChartWindow(QMainWindow):
         if new_students:
             self.students = new_students
             self.refresh_student_list()
-            self.statusBar().showMessage(f"已从CSV文件导入 {len(new_students)} 名学生")
+            InfoBar.success(
+            title="成功",
+            content=f"已从CSV文件导入 {len(new_students)} 名学生",
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP_RIGHT,
+            duration=2000,
+            parent=self
+        )
         elif not new_students:
             # 用户取消操作或文件为空的情况不显示警告
             pass
@@ -457,4 +515,12 @@ class SeatingChartWindow(QMainWindow):
 
     def show_status_message(self, message):
         """显示状态栏消息"""
-        self.statusBar().showMessage(message)
+        InfoBar.info(
+            title="信息",
+            content=message,
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP_RIGHT,
+            duration=2000,
+            parent=self
+        )
