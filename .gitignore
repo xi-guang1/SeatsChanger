@@ -52,3 +52,6 @@ dist/
 
 # 模板文件夹
 templates/
+
+#配置文件
+config.json
