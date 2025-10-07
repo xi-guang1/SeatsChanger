@@ -24,7 +24,7 @@
 2. 安装必要的Python库：
 
 ```bash
-pip install PyQt5 qfluentwidgets
+pip install PyQt5 PyQt-Fluent-Widgets[full]
 ```
 
 ### 下载项目
