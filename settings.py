@@ -1,12 +1,13 @@
 import os
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QSpinBox, QWidget
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
     CardWidget,
     SubtitleLabel,
     TitleLabel,
     PushButton,
-    PrimaryPushButton
+    PrimaryPushButton,
+    SpinBox
 )
 
 class SettingsDialog(QDialog):
@@ -81,16 +82,6 @@ class SettingsPanel(QWidget):
         # 设置最小尺寸
         self.setMinimumSize(550, 350)
         
-        # 添加标题 - 使用qfluentwidgets的TitleLabel
-        title = TitleLabel("座位布局设置", self)
-        title.show()
-        main_layout.addWidget(title)
-        
-        # 添加说明文字 - 使用qfluentwidgets的BodyLabel
-        description = BodyLabel("请设置每列的行数和列数：", self)
-        description.show()
-        main_layout.addWidget(description)
-        
         # 创建设置项容器 - 使用qfluentwidgets的CardWidget
         settings_container = CardWidget(self)
         settings_container.show()
@@ -124,11 +115,11 @@ class SettingsPanel(QWidget):
             rows_label.show()
             rows_layout.addWidget(rows_label)
             
-            rows_spinbox = QSpinBox(rows_group)
+            rows_spinbox = SpinBox(rows_group)
             rows_spinbox.setRange(1, 20)
             rows_spinbox.setValue(self.layout_config[col_key]["rows"])
-            rows_spinbox.setFixedWidth(80)
-            rows_spinbox.setStyleSheet("QSpinBox { background-color: white; border: 1px solid #d0d0d0; border-radius: 4px; padding: 4px; }")
+            rows_spinbox.setFixedWidth(120)
+            rows_spinbox.setFixedHeight(30)
             rows_spinbox.show()
             rows_layout.addWidget(rows_spinbox)
             
@@ -145,11 +136,11 @@ class SettingsPanel(QWidget):
             cols_label.show()
             cols_layout.addWidget(cols_label)
             
-            cols_spinbox = QSpinBox(cols_group)
+            cols_spinbox = SpinBox(cols_group)
             cols_spinbox.setRange(1, 10)
             cols_spinbox.setValue(self.layout_config[col_key]["cols"])
-            cols_spinbox.setFixedWidth(80)
-            cols_spinbox.setStyleSheet("QSpinBox { background-color: white; border: 1px solid #d0d0d0; border-radius: 4px; padding: 4px; }")
+            cols_spinbox.setFixedWidth(120)
+            cols_spinbox.setFixedHeight(30)
             cols_spinbox.show()
             cols_layout.addWidget(cols_spinbox)
             
