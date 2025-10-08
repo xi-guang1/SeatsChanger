@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
 from qfluentwidgets import (
     BodyLabel,
     CardWidget,
+    FluentWindow,
     FluentIcon as FIF,
     InfoBar,
     InfoBarPosition,
@@ -28,30 +29,38 @@ from qfluentwidgets import (
 # 导入自定义模块
 from config_manager import ConfigManager
 from widgets import DraggableLabel, SeatWidget
-from settings import SettingsDialog
+from settings import SettingsPanel
 from export_manager import ExportManager
 from utils import CSVManager
 
-class SeatingChartWindow(QMainWindow):
-    """教室座位安排系统主窗口"""
-    def __init__(self):
-        super().__init__()
-        self.students = ["张三", "李四", "王五", "赵六", "钱七", "孙八", "周九", "吴十"]
-        self.columns = {}  # 存储座位列数据
+class MWindow(FluentWindow):
+    def __init__(self, parent=None):
+        super().__init__(parent)
         
+        self.seatingChartWindow = SeatingChartWindow(
+            self, 
+            obj_name="seatingChartWindow"
+        )
+        self.Setting = SettingsPanel(
+            self, 
+            obj_name="Setting"
+        )
+
+        # self.Setting.buttons_widget.buttons_layout.apply_button.clicked.connect(self.reloadSetting)
+
         # 初始化配置管理器
         self.config_manager = ConfigManager()
         self.config = self.config_manager.get_config()
         self.current_layout_config = self.config["layout_config"].copy()  # 当前布局配置
-        
-        # 初始化导出管理器
-        self.export_manager = ExportManager(self)
-        
-        self._init_window()
-        self._init_ui()
-        self._refresh_ui()
-        
-    def _init_window(self):
+
+        self.initNavigation()
+        self.initWindow()
+
+    def initNavigation(self):
+        self.addSubInterface(self.seatingChartWindow, FIF.HOME, 'Home')
+        self.addSubInterface(self.Setting, FIF.SETTING, 'Setting')
+
+    def initWindow(self):
         """初始化窗口基本属性"""
         # 从配置文件设置窗口标题
         self.setWindowTitle(self.config["window"]["title"])
@@ -76,21 +85,37 @@ class SeatingChartWindow(QMainWindow):
         # 设置窗口样式
         self.setStyleSheet(self.config["styles"]["main_window"])
 
+    def reloadSetting():
+        pass
+
+class SeatingChartWindow(QWidget):
+    """教室座位安排系统主窗口"""
+    def __init__(self,parent=None,obj_name="seatingChartWindow"):
+        super().__init__(parent)
+        self.setObjectName(obj_name)
+        self.students = ["张三", "李四", "王五", "赵六", "钱七", "孙八", "周九", "吴十"]
+        self.columns = {}  # 存储座位列数据
+        
+        # 初始化配置管理器
+        self.config_manager = ConfigManager()
+        self.config = self.config_manager.get_config()
+        self.current_layout_config = self.config["layout_config"].copy()  # 当前布局配置
+        
+        # 初始化导出管理器
+        self.export_manager = ExportManager(self)
+
+        # self._init_window()
+        self._init_ui()
+        self._refresh_ui()
+        
+
     def _init_ui(self):
         """初始化用户界面"""
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        self.main_layout = QVBoxLayout(central_widget)
+        self.layout = QVBoxLayout(self)
         
-        self._add_title()
         self._setup_control_panel()
         self._setup_seating_area()
         self._setup_student_list_area()
-
-    def _add_title(self):
-        """添加标题"""
-        title_label = TitleLabel("教室座位安排")
-        self.main_layout.addWidget(title_label)
 
     def _setup_control_panel(self):
         """设置控制面板"""
@@ -111,9 +136,6 @@ class SeatingChartWindow(QMainWindow):
         input_layout = QHBoxLayout(input_group)
         input_layout.setSpacing(8)
         
-        input_label = BodyLabel("学生姓名:")
-        input_label.setStyleSheet("font-size: 14px; color: #424242;")
-        
         # 学生输入框
         self.add_student_edit = LineEdit()
         self.add_student_edit.setFixedWidth(200)
@@ -132,7 +154,6 @@ class SeatingChartWindow(QMainWindow):
             }
         """)
         
-        input_layout.addWidget(input_label)
         input_layout.addWidget(self.add_student_edit)
         
         # 按钮
@@ -157,22 +178,14 @@ class SeatingChartWindow(QMainWindow):
         self.export_pdf_button.clicked.connect(self.export_manager.export_for_printing)
         self.export_pdf_button.setFixedHeight(36)
         
-        # 添加设置按钮
-        self.settings_button = PushButton(
-            "设置", icon=QIcon(FIF.SETTING.path()))
-        self.settings_button.clicked.connect(self.open_settings_panel)
-        self.settings_button.setFixedHeight(36)
-        
         # 组装主控制面板
         control_layout.addWidget(input_group)
         control_layout.addWidget(self.add_student_button)
         control_layout.addWidget(self.import_csv_button)
         control_layout.addWidget(self.export_as_image_button)
         control_layout.addWidget(self.export_pdf_button)
-        control_layout.addStretch(1)
-        control_layout.addWidget(self.settings_button)
         
-        self.main_layout.addWidget(control_card)
+        self.layout.addWidget(control_card)
 
     def _setup_seating_area(self):
         """设置座位显示区域"""
@@ -196,7 +209,7 @@ class SeatingChartWindow(QMainWindow):
         container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.addWidget(seating_card)
         
-        self.main_layout.addWidget(seating_container)
+        self.layout.addWidget(seating_container)
         
         # 添加讲台
         self._add_teacher_desk()
@@ -234,7 +247,7 @@ class SeatingChartWindow(QMainWindow):
         desk_layout.addWidget(teacher_desk)
         
         # 添加到主布局
-        self.main_layout.addWidget(desk_container)
+        self.layout.addWidget(desk_container)
 
     def _setup_student_list_area(self):
         """设置学生列表区域（水平滚动）"""
@@ -298,7 +311,7 @@ class SeatingChartWindow(QMainWindow):
         student_list_layout.addWidget(student_scroll_area)
         
         # 将学生列表卡片添加到主布局
-        self.main_layout.addWidget(student_list_card)
+        self.layout.addWidget(student_list_card)
 
     def _refresh_ui(self):
         """刷新整个UI界面"""
@@ -362,47 +375,6 @@ class SeatingChartWindow(QMainWindow):
         for col_key in ["column1", "column2", "column3"]:
             self._create_seating_column(col_key, layout_config[col_key])
     
-    def open_settings_panel(self):
-        """打开设置面板"""
-        
-        # 创建对话框
-        dialog = SettingsDialog(
-            self, 
-            layout_config=self.current_layout_config, 
-            column_names=self.config["column_names"]
-        )
-        
-        # 显示对话框并等待其关闭
-        result = dialog.exec_()
-        
-        # 对话框关闭后，检查结果并应用设置
-        if result == QDialog.Accepted and hasattr(dialog.settings_panel, 'custom_layout_config'):
-            try:
-                # 在对话框关闭后，在主UI线程中应用设置
-                self.setup_seating_chart(dialog.settings_panel.custom_layout_config)
-                # 更新配置文件中的布局配置
-                self.config["layout_config"] = dialog.settings_panel.custom_layout_config
-                self.config_manager.update_config(self.config)
-                # 更新状态消息
-                InfoBar.success(
-            title="成功",
-            content="座位布局已更新",
-            orient=Qt.Horizontal,
-            isClosable=True,
-            position=InfoBarPosition.TOP_RIGHT,
-            duration=2000,
-            parent=self
-        )
-            except Exception as e:
-                InfoBar.error(
-            title="错误",
-            content=f"应用设置时出错: {str(e)}",
-            orient=Qt.Horizontal,
-            isClosable=True,
-            position=InfoBarPosition.TOP_RIGHT,
-            duration=3000,
-            parent=self
-        )
 
     def _create_seating_column(self, col_key, config):
         """创建单个列的座位布局"""

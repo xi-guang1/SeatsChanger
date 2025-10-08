@@ -1,16 +1,19 @@
-import os
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QWidget
+from PyQt5.QtCore import Qt
 from qfluentwidgets import (
     BodyLabel,
     CardWidget,
     SubtitleLabel,
-    TitleLabel,
     PushButton,
+    FluentWindow,
+    FluentIcon as FIF,
     PrimaryPushButton,
+    InfoBar,
+    InfoBarPosition,
     SpinBox
 )
 
-class SettingsDialog(QDialog):
+class SettingsDialog(FluentWindow):
     """设置对话框
     
     用于配置应用程序的各种设置，包括座位布局
@@ -25,29 +28,63 @@ class SettingsDialog(QDialog):
         """
         super().__init__(parent)
         
-        self.setWindowTitle("设置")
-        self.resize(650, 450)  # 稍微增加对话框大小
-        self.setMinimumSize(600, 400)  # 设置最小尺寸
+        # self.setWindowTitle("设置")
+        # self.resize(650, 450)  # 稍微增加对话框大小
+        # self.setMinimumSize(600, 400)  # 设置最小尺寸
         
-        # 存储设置面板引用
-        self.settings_panel = SettingsPanel(
+        self.mainSetting = SettingsPanel(
             self, 
             layout_config=layout_config, 
-            column_names=column_names
+            column_names=column_names,
+            obj_name="mainSetting"
         )
+        self.themeSetting = SettingsPanel(
+            self, 
+            layout_config=layout_config, 
+            column_names=column_names,
+            obj_name="themeSetting"
+        )
+
+        # # 存储设置面板引用
+        # self.settings_panel = SettingsPanel(
+        #     self, 
+        #     layout_config=layout_config, 
+        #     column_names=column_names
+        # )
         
-        # 设置对话框布局
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.settings_panel)
+        # # 设置对话框布局
+        # layout = QVBoxLayout(self)
+        # layout.addWidget(self.settings_panel)
+        self.initNavigation()
+        self.initWindow()
+
+    def initNavigation(self):
+        self.addSubInterface(self.mainSetting, FIF.HOME, 'Home')
+        self.addSubInterface(self.themeSetting, FIF.MUSIC, 'Music library')
+        # self.addSubInterface(self.videoInterface, FIF.VIDEO, 'Video library')
+
+        # self.navigationInterface.addSeparator()
+
+        # self.addSubInterface(self.albumInterface, FIF.ALBUM, 'Albums', NavigationItemPosition.SCROLL)
+        # self.addSubInterface(self.albumInterface1, FIF.ALBUM, 'Album 1', parent=self.albumInterface)
+
+        # self.addSubInterface(self.settingInterface, FIF.SETTING, 'Settings', NavigationItemPosition.BOTTOM)
+
+    def initWindow(self):
+        self.resize(900, 700)
+        # self.setWindowIcon(QIcon(':/qfluentwidgets/images/logo.png'))
+        self.setWindowTitle('Setting')
 
 class SettingsPanel(QWidget):
     """设置面板部件
     
     用于配置座位布局的行数和列数
     """
-    def __init__(self, parent=None, layout_config=None, column_names=None):
+    def __init__(self, parent=None, layout_config=None, column_names=None, obj_name=""):
         super().__init__(parent)
         
+        self.setObjectName(obj_name)
+
         # 设置布局配置和列名
         self.layout_config = layout_config or {
             "column1": {"rows": 8, "cols": 3, "row_height": 60, "col_width": 80},
@@ -207,11 +244,29 @@ class SettingsPanel(QWidget):
         # 保存设置，准备在对话框关闭后应用
         self.custom_layout_config = custom_layout_config
         
-        # 设置对话框结果并关闭
-        if self.parent():
-            try:
-                # 设置对话框结果为接受
-                self.parent().accept()
-            except Exception as e:
-                # 如果设置结果失败，尝试直接关闭
-                self.close_parent_dialog()
+        try:
+            # 在对话框关闭后，在主UI线程中应用设置
+            self.parent().setup_seating_chart(dialog.settings_panel.custom_layout_config)
+            # 更新配置文件中的布局配置
+            self.parent().config["layout_config"] = dialog.settings_panel.custom_layout_config
+            self.parent().config_manager.update_config(self.config)
+            更新状态消息
+            InfoBar.success(
+        title="成功",
+        content="座位布局已更新",
+        orient=Qt.Horizontal,
+        isClosable=True,
+        position=InfoBarPosition.TOP_RIGHT,
+        duration=2000,
+        parent=self
+    )
+        except Exception as e:
+            InfoBar.error(
+        title="错误",
+        content=f"应用设置时出错: {str(e)}",
+        orient=Qt.Horizontal,
+        isClosable=True,
+        position=InfoBarPosition.TOP_RIGHT,
+        duration=3000,
+        parent=self
+    )
