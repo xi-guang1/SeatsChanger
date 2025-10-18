@@ -1,4 +1,5 @@
 from PyQt5.QtCore import Qt
+from qfluentwidgets import PrimaryPushButton
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QApplication,
@@ -37,21 +38,24 @@ class MWindow(FluentWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         
+        # 初始化配置管理器
+        self.config_manager = ConfigManager()
+        self.config = self.config_manager.get_config()
+        self.current_layout_config = self.config["layout_config"].copy()  # 当前布局配置
+        
         self.seatingChartWindow = SeatingChartWindow(
             self, 
             obj_name="seatingChartWindow"
         )
         self.Setting = SettingsPanel(
             self, 
+            layout_config=self.config["layout_config"],
+            column_names=self.config["column_names"],
             obj_name="Setting"
         )
 
-        # self.Setting.buttons_widget.buttons_layout.apply_button.clicked.connect(self.reloadSetting)
-
-        # 初始化配置管理器
-        self.config_manager = ConfigManager()
-        self.config = self.config_manager.get_config()
-        self.current_layout_config = self.config["layout_config"].copy()  # 当前布局配置
+        # 连接设置更新信号到reloadSetting方法
+        self.Setting.settings_updated.connect(self.reloadSetting)
 
         self.initNavigation()
         self.initWindow()
@@ -85,8 +89,23 @@ class MWindow(FluentWindow):
         # 设置窗口样式
         self.setStyleSheet(self.config["styles"]["main_window"])
 
-    def reloadSetting():
-        pass
+    def reloadSetting(self, new_layout_config=None):
+        """重新加载设置并更新界面
+        
+        Args:
+            new_layout_config: 从设置面板传递的新布局配置
+        """
+        # 如果没有传递配置，尝试从Setting对象获取
+        if new_layout_config is None and hasattr(self.Setting, 'custom_layout_config'):
+            new_layout_config = self.Setting.custom_layout_config
+            
+        if new_layout_config:
+            # 更新配置
+            self.config["layout_config"] = new_layout_config
+            # 保存到配置文件
+            self.config_manager.update_config(self.config)
+            # 重新设置座位图表
+            self.seatingChartWindow.setup_seating_chart(new_layout_config)
 
 class SeatingChartWindow(QWidget):
     """教室座位安排系统主窗口"""
@@ -96,17 +115,26 @@ class SeatingChartWindow(QWidget):
         self.students = ["张三", "李四", "王五", "赵六", "钱七", "孙八", "周九", "吴十"]
         self.columns = {}  # 存储座位列数据
         
+        print("调试 - 开始初始化SeatingChartWindow")
+        
         # 初始化配置管理器
         self.config_manager = ConfigManager()
-        self.config = self.config_manager.get_config()
+        # 重新加载配置以确保获取最新数据
+        self.config = self.config_manager._load_config()
+        print("调试 - 配置已加载")
         self.current_layout_config = self.config["layout_config"].copy()  # 当前布局配置
         
         # 初始化导出管理器
         self.export_manager = ExportManager(self)
 
-        # self._init_window()
+        # 初始化UI
+        print("调试 - 开始初始化UI")
         self._init_ui()
-        self._refresh_ui()
+        
+        # 强制延迟一下，确保UI完全初始化
+        from PyQt5.QtCore import QTimer
+        print("调试 - 设置定时器延迟执行_refresh_ui")
+        QTimer.singleShot(100, self._refresh_ui)  # 延迟100毫秒执行
         
 
     def _init_ui(self):
@@ -315,8 +343,38 @@ class SeatingChartWindow(QWidget):
 
     def _refresh_ui(self):
         """刷新整个UI界面"""
+        print("调试 - _refresh_ui方法开始执行")
         self.refresh_student_list()
         self.setup_seating_chart(self.config["layout_config"])
+        
+        # 强制更新所有布局和重绘UI
+        print("调试 - 开始更新布局")
+        self.layout.update()
+        self.updateGeometry()
+        self.repaint()
+        
+        # 安全地检查seating_chart_layout
+        print("调试 - 检查seating_chart_layout")
+        if hasattr(self, 'seating_chart_layout'):
+            print(f"调试 - seating_chart_layout存在，子项数量: {self.seating_chart_layout.count()}")
+            # 确保所有子组件都可见
+            for i in range(self.seating_chart_layout.count()):
+                item = self.seating_chart_layout.itemAt(i)
+                if item and item.widget():
+                    item.widget().show()
+                    print(f"调试 - 显示座位列组件: {i}")
+                    # 确保列标题可见
+                    if hasattr(item.widget(), 'layout') and item.widget().layout():
+                        for j in range(item.widget().layout().count()):
+                            col_item = item.widget().layout().itemAt(j)
+                            if col_item and col_item.widget():
+                                col_item.widget().show()
+                                print(f"调试 - 显示列内组件: {j}")
+        else:
+            print("调试 - seating_chart_layout不存在")
+        
+        print("调试 - UI刷新完成，所有组件已显示")
+        
         InfoBar.success(
             title="成功",
             content="就绪",
@@ -360,7 +418,8 @@ class SeatingChartWindow(QWidget):
     def setup_seating_chart(self, layout_config=None):
         """设置座位图表布局"""
         if layout_config is None:
-            layout_config = self.config_manager.DEFAULT_CONFIG["layout_config"]
+            # 优先使用self.config中的配置，而不是直接使用DEFAULT_CONFIG
+            layout_config = self.config["layout_config"]
         
         # 保存当前布局配置
         self.current_layout_config = layout_config.copy()
@@ -371,8 +430,8 @@ class SeatingChartWindow(QWidget):
             if widget:
                 widget.deleteLater()
         
-        # 创建三大列座位
-        for col_key in ["column1", "column2", "column3"]:
+        # 创建所有配置的座位列
+        for col_key in layout_config:
             self._create_seating_column(col_key, layout_config[col_key])
     
 
@@ -384,21 +443,53 @@ class SeatingChartWindow(QWidget):
         column_layout.setContentsMargins(0, 0, 0, 0)  # 设置列容器无内边距
         column_layout.setSpacing(15)  # 设置列内组件适当间距
         
-        # 列标题
-        col_title = BodyLabel(self.config["column_names"][col_key])
+        # 列标题 - 添加fallback机制确保列名始终能正确显示
+        try:
+            # 添加调试输出
+            print(f"调试 - 配置内容: {self.config}")
+            print(f"调试 - column_names存在: {'column_names' in self.config}")
+            
+            # 尝试从配置获取列名
+            if "column_names" in self.config and col_key in self.config["column_names"]:
+                col_name = self.config["column_names"][col_key]
+                print(f"调试 - 从配置获取列名 {col_key}: {col_name}")
+            else:
+                # fallback到默认列名
+                default_column_names = {
+                    "column1": "南",
+                    "column2": "中",
+                    "column3": "北"
+                }
+                col_name = default_column_names.get(col_key, f"列{col_key[-1]}")
+                print(f"调试 - 使用默认列名 {col_key}: {col_name}")
+        except Exception as e:
+            print(f"调试 - 异常: {str(e)}")
+            # 出现任何异常，使用简单的列名
+            col_name = f"列{col_key[-1]}"
+            print(f"调试 - 使用简单列名 {col_key}: {col_name}")
+        
+        # 创建列标题，使用更强的样式确保可见性
+        col_title = BodyLabel(col_name)
+        col_title.setObjectName(f"col_title_{col_key}")
         col_title.setAlignment(Qt.AlignCenter)
+        # 使用更醒目的样式
         col_title.setStyleSheet("""
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: bold;
             color: #1976d2;
-            padding: 8px 16px;
+            padding: 12px 20px;
             background-color: #e3f2fd;
-            border-radius: 6px;
-            margin-bottom: 5px;
+            border: 2px solid #1976d2;
+            border-radius: 8px;
+            min-height: 45px;
+            min-width: 80px;
         """)
-        # 固定标题高度，初始化后不再修改
-        col_title.setFixedHeight(40)
+        # 确保标签大小合适
+        col_title.setMinimumSize(100, 50)
+        # 添加到布局并确保可见
         column_layout.addWidget(col_title)
+        col_title.show()
+        print(f"调试 - 列标题已创建并添加到布局: {col_name}")
         
         # 网格布局容器，添加背景
         grid_container = QWidget()

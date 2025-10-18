@@ -1,11 +1,10 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QWidget
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget
+from PyQt5.QtCore import Qt, pyqtSignal
 from qfluentwidgets import (
     BodyLabel,
     CardWidget,
     SubtitleLabel,
     PushButton,
-    FluentWindow,
     FluentIcon as FIF,
     PrimaryPushButton,
     InfoBar,
@@ -13,73 +12,14 @@ from qfluentwidgets import (
     SpinBox
 )
 
-class SettingsDialog(FluentWindow):
-    """设置对话框
-    
-    用于配置应用程序的各种设置，包括座位布局
-    """
-    def __init__(self, parent=None, layout_config=None, column_names=None):
-        """初始化设置对话框
-        
-        Args:
-            parent: 父窗口
-            layout_config: 当前布局配置
-            column_names: 列名称配置
-        """
-        super().__init__(parent)
-        
-        # self.setWindowTitle("设置")
-        # self.resize(650, 450)  # 稍微增加对话框大小
-        # self.setMinimumSize(600, 400)  # 设置最小尺寸
-        
-        self.mainSetting = SettingsPanel(
-            self, 
-            layout_config=layout_config, 
-            column_names=column_names,
-            obj_name="mainSetting"
-        )
-        self.themeSetting = SettingsPanel(
-            self, 
-            layout_config=layout_config, 
-            column_names=column_names,
-            obj_name="themeSetting"
-        )
-
-        # # 存储设置面板引用
-        # self.settings_panel = SettingsPanel(
-        #     self, 
-        #     layout_config=layout_config, 
-        #     column_names=column_names
-        # )
-        
-        # # 设置对话框布局
-        # layout = QVBoxLayout(self)
-        # layout.addWidget(self.settings_panel)
-        self.initNavigation()
-        self.initWindow()
-
-    def initNavigation(self):
-        self.addSubInterface(self.mainSetting, FIF.HOME, 'Home')
-        self.addSubInterface(self.themeSetting, FIF.MUSIC, 'Music library')
-        # self.addSubInterface(self.videoInterface, FIF.VIDEO, 'Video library')
-
-        # self.navigationInterface.addSeparator()
-
-        # self.addSubInterface(self.albumInterface, FIF.ALBUM, 'Albums', NavigationItemPosition.SCROLL)
-        # self.addSubInterface(self.albumInterface1, FIF.ALBUM, 'Album 1', parent=self.albumInterface)
-
-        # self.addSubInterface(self.settingInterface, FIF.SETTING, 'Settings', NavigationItemPosition.BOTTOM)
-
-    def initWindow(self):
-        self.resize(900, 700)
-        # self.setWindowIcon(QIcon(':/qfluentwidgets/images/logo.png'))
-        self.setWindowTitle('Setting')
-
 class SettingsPanel(QWidget):
     """设置面板部件
     
     用于配置座位布局的行数和列数
     """
+    # 定义配置更新信号，携带布局配置数据
+    settings_updated = pyqtSignal(dict)
+    
     def __init__(self, parent=None, layout_config=None, column_names=None, obj_name=""):
         super().__init__(parent)
         
@@ -210,63 +150,93 @@ class SettingsPanel(QWidget):
         
         main_layout.addWidget(buttons_widget)
         
-        # 强制显示所有控件
-        self.show()
-        for child in self.findChildren(QWidget):
-            child.show()
+        # 在FluentWindow结构中，控件会自动显示，不需要强制显示
     
     def close_parent_dialog(self):
-        """安全关闭父对话框"""
-        if self.parent():
-            try:
-                self.parent().reject()
-            except Exception as e:
-                pass  # 静默处理错误
+        """关闭父窗口（在FluentWindow结构中不再需要）"""
+        # 在FluentWindow结构中，我们不再需要关闭整个对话框
+        # 而是直接应用设置并保持界面打开
+        pass
     
     def apply_settings(self):
-        """应用设置并关闭对话框"""
-        # 创建新的布局配置
-        custom_layout_config = {}
-        
-        # 从输入框获取每列的行数和列数
-        for col_key in self.column_names.keys():
-            rows = self.column_rows_inputs[col_key].value()
-            cols = self.column_cols_inputs[col_key].value()
-            
-            # 保留原有的行高和列宽设置
-            custom_layout_config[col_key] = {
-                "rows": rows,
-                "cols": cols,
-                "row_height": self.layout_config[col_key]["row_height"],
-                "col_width": self.layout_config[col_key]["col_width"]
-            }
-        
-        # 保存设置，准备在对话框关闭后应用
-        self.custom_layout_config = custom_layout_config
-        
+        """应用设置并实时更新界面"""
         try:
-            # 在对话框关闭后，在主UI线程中应用设置
-            self.parent().setup_seating_chart(dialog.settings_panel.custom_layout_config)
-            # 更新配置文件中的布局配置
-            self.parent().config["layout_config"] = dialog.settings_panel.custom_layout_config
-            self.parent().config_manager.update_config(self.config)
-            更新状态消息
+            # 创建新的布局配置
+            custom_layout_config = {}
+            
+            # 从输入框获取每列的行数和列数
+            for col_key in self.column_names.keys():
+                rows = self.column_rows_inputs[col_key].value()
+                cols = self.column_cols_inputs[col_key].value()
+                
+                # 保留原有的行高和列宽设置
+                custom_layout_config[col_key] = {
+                    "rows": rows,
+                    "cols": cols,
+                    "row_height": self.layout_config[col_key]["row_height"],
+                    "col_width": self.layout_config[col_key]["col_width"]
+                }
+            
+            # 保存设置到实例变量
+            self.custom_layout_config = custom_layout_config
+            
+            # 首先发送信号通知主界面更新座位布局
+            self.settings_updated.emit(custom_layout_config)
+            
+            # 直接保存配置到文件（不依赖parent的属性）
+            import json
+            import os
+            config_file = "config.json"
+            
+            # 如果文件存在，先读取现有内容
+            if os.path.exists(config_file):
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+            else:
+                # 如果文件不存在，创建默认配置
+                config_data = {
+                    "layout_config": custom_layout_config,
+                    "column_names": self.column_names,
+                    "window": {
+                        "title": "教室座位安排系统",
+                        "max_width": 1200,
+                        "max_height": 800,
+                        "min_width": 900,
+                        "min_height": 700,
+                        "size_percentage": 0.85
+                    },
+                    "theme": "LIGHT",
+                    "styles": {
+                        "main_window": "background-color: #f5f7fa;"
+                    }
+                }
+            
+            # 更新布局配置
+            config_data["layout_config"] = custom_layout_config
+            
+            # 写入文件，确保正确处理中文字符
+            with open(config_file, 'w', encoding='utf-8') as f:
+                json.dump(config_data, f, ensure_ascii=False, indent=4)
+            
+            print(f"配置已保存到 {config_file}")
+            
             InfoBar.success(
-        title="成功",
-        content="座位布局已更新",
-        orient=Qt.Horizontal,
-        isClosable=True,
-        position=InfoBarPosition.TOP_RIGHT,
-        duration=2000,
-        parent=self
-    )
+                title="成功",
+                content="座位布局已更新并保存",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=2000,
+                parent=self
+            )
         except Exception as e:
+            print(f"保存配置出错: {str(e)}")
             InfoBar.error(
-        title="错误",
-        content=f"应用设置时出错: {str(e)}",
-        orient=Qt.Horizontal,
-        isClosable=True,
-        position=InfoBarPosition.TOP_RIGHT,
-        duration=3000,
-        parent=self
-    )
+                title="错误",
+                content=f"应用设置时出错: {str(e)}",
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP_RIGHT,
+                duration=3000,
+                parent=self
+            )
