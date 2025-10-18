@@ -5,7 +5,6 @@ from qfluentwidgets import (
     CardWidget,
     SubtitleLabel,
     PushButton,
-    FluentIcon as FIF,
     PrimaryPushButton,
     InfoBar,
     InfoBarPosition,

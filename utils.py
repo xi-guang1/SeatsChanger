@@ -1,6 +1,98 @@
 import csv
 import os
+import logging
+from datetime import datetime
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
+
+# 确保日志文件夹存在
+log_dir = 'log'
+os.makedirs(log_dir, exist_ok=True)
+
+# 配置日志系统
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(os.path.join(log_dir, f'seats_changer_{datetime.now().strftime("%Y%m%d")}.log'), encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
+
+# 创建不同模块的logger
+main_logger = logging.getLogger('main')
+config_logger = logging.getLogger('config')
+ui_logger = logging.getLogger('ui')
+layout_logger = logging.getLogger('layout')
+file_logger = logging.getLogger('file')
+
+class LogManager:
+    """日志管理器
+    
+    提供统一的日志记录接口
+    """
+    
+    @staticmethod
+    def get_logger(module_name='main'):
+        """获取指定模块的logger
+        
+        Args:
+            module_name: 模块名称
+            
+        Returns:
+            logging.Logger: logger实例
+        """
+        return logging.getLogger(module_name)
+    
+    @staticmethod
+    def debug(logger, message):
+        """记录调试信息
+        
+        Args:
+            logger: logger实例
+            message: 调试信息
+        """
+        logger.debug(message)
+    
+    @staticmethod
+    def info(logger, message):
+        """记录信息
+        
+        Args:
+            logger: logger实例
+            message: 信息内容
+        """
+        logger.info(message)
+    
+    @staticmethod
+    def warning(logger, message):
+        """记录警告
+        
+        Args:
+            logger: logger实例
+            message: 警告信息
+        """
+        logger.warning(message)
+    
+    @staticmethod
+    def error(logger, message):
+        """记录错误
+        
+        Args:
+            logger: logger实例
+            message: 错误信息
+        """
+        logger.error(message)
+    
+    @staticmethod
+    def exception(logger, message, exc_info=True):
+        """记录异常
+        
+        Args:
+            logger: logger实例
+            message: 异常信息
+            exc_info: 是否包含异常堆栈
+        """
+        logger.exception(message, exc_info=exc_info)
 
 class CSVManager:
     """CSV文件管理器
